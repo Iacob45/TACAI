@@ -5,6 +5,9 @@ import numpy as np
 import random
 from copy import deepcopy
 
+from hog import hog
+
+
 # Plan
 
 # import data
@@ -104,7 +107,9 @@ print(np.shape(test_images))
 kernel = np.ones((5,5), np.uint8)
 
 copy_train_images = deepcopy(train_images)
+cropped_train_images = deepcopy(train_images)
 copy_test_images = deepcopy(test_images)
+cropped_test_images = deepcopy(test_images)
 
 for i, cls in enumerate(train_images):
     for j, image in enumerate(cls):
@@ -116,6 +121,7 @@ for i, cls in enumerate(train_images):
         train_images[i][j] = detectie_culoare_piele(train_images[i][j])
         train_images[i][j] = cv2.dilate(train_images[i][j], kernel)
         train_images[i][j] = cv2.erode(train_images[i][j], kernel)
+
 
 for i, cls in enumerate(test_images):
     for j, image in enumerate(cls):
@@ -129,14 +135,45 @@ for i, cls in enumerate(test_images):
         test_images[i][j] = cv2.erode(test_images[i][j], kernel)
 
 
+for i, cls in enumerate(train_images):
+    for j, image in enumerate(cls):
+        contours, _ = cv2.findContours(train_images[i][j].astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        area_max, bb_max = 0, 0
+        for contour in contours:
+            bounding_box = cv2.boundingRect(contour)  # x y width height
+            area = bounding_box[2] * bounding_box[3]
+
+            if area_max < area:
+                area_max = area
+                bb_max = bounding_box
+
+        cropped_train_images[i][j] = copy_train_images[i][j][bb_max[1]:bb_max[1] + bb_max[3], bb_max[0]:bb_max[0] + bb_max[2]]
+
+for i, cls in enumerate(test_images):
+    for j, image in enumerate(cls):
+        contours, _ = cv2.findContours(test_images[i][j].astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        area_max, bb_max = 0, 0
+        for contour in contours:
+            bounding_box = cv2.boundingRect(contour)  # x y width height
+            area = bounding_box[2] * bounding_box[3]
+
+            if area_max < area:
+                area_max = area
+                bb_max = bounding_box
+
+        cropped_test_images[i][j] = copy_test_images[i][j][bb_max[1]:bb_max[1] + bb_max[3], bb_max[0]:bb_max[0] + bb_max[2]]
+
 mask = test_images[0][0]
 img = copy_test_images[0][0]
 
-print(img.shape)
-print(np.argmax(img, axis=1))
-
 img[mask == 0] = 0
-plt.figure(), plt.imshow(mask)
 
+plt.figure(), plt.imshow(cropped_train_images[0][0])
 
 plt.show()
+
+first_hog = hog.compute(cropped_train_images[0][0])
+print(np.size(first_hog))
+
