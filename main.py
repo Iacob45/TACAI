@@ -5,6 +5,9 @@ import numpy as np
 import random
 from copy import deepcopy
 import sklearn as sk
+from matplotlib.colors import LinearSegmentedColormap
+from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.neighbors import KNeighborsClassifier
 
 from hog import hog
 
@@ -22,6 +25,27 @@ from hog import hog
 # classification
 
 # confusion matrix = pt colocviu
+
+
+def afiseaza_matrice(mat, titlu='Matrice', cmap='Blues', valori=True, fmt='.0f'):
+    plt.figure()
+    plt.imshow(mat, cmap=cmap)
+    plt.colorbar()
+    plt.title(titlu)
+
+    plt.xticks(np.arange(mat.shape[1]))
+    plt.yticks(np.arange(mat.shape[0]))
+
+    if valori:
+        for i in range(mat.shape[0]):
+            for j in range(mat.shape[1]):
+                plt.text(
+                    j, i,
+                    format(mat[i, j], fmt),
+                    ha='center',
+                    va='center'
+                )
+
 
 def detectie_culoare_piele(img):
     R = img[:, :, 0]
@@ -186,10 +210,33 @@ for i, cls in enumerate(cropped_test_images):
         test_features.append(hog.compute(cropped_test_images[i][j]))
         test_labels.append(i)
 
-clf = sk.svm.SVC()
+# List to np.array
 train_features = np.array(train_features)
 test_features = np.array(test_features)
-clf.fit(train_features, train_labels)
-prediction = clf.predict(test_features)
+train_labels = np.array(train_labels)
+test_labels = np.array(test_labels)
 
-print(prediction)
+# SVM
+clf = sk.svm.SVC(C=10)
+clf.fit(train_features, train_labels)
+prediction_svm = clf.predict(test_features)
+
+# KNN
+knn = KNeighborsClassifier(n_neighbors=1)
+knn.fit(train_features, train_labels)
+prediction_knn = knn.predict(test_features)
+
+# Results
+print(f"Ground Truth: {test_labels}\n"
+      f"SVM prediction: {prediction_svm}\n"
+      f"KNN prediction: {prediction_knn}\n"
+      f"SVM accuracy: {accuracy_score(test_labels, prediction_svm):.2f}\n"
+      f"KNN accuracy: {accuracy_score(test_labels, prediction_knn):.2f}")
+
+# Confusion matrix
+cm_svm = confusion_matrix(test_labels, prediction_svm)
+cm_knn = confusion_matrix(test_labels, prediction_knn)
+afiseaza_matrice(cm_svm, "Matrice de confuzie SVM", fmt='d')
+afiseaza_matrice(cm_knn, "Matrice de confuzie KNN", fmt='d')
+
+plt.show()
