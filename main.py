@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 from copy import deepcopy
+import sklearn as sk
 
 from hog import hog
 
@@ -165,15 +166,30 @@ for i, cls in enumerate(test_images):
 
         cropped_test_images[i][j] = copy_test_images[i][j][bb_max[1]:bb_max[1] + bb_max[3], bb_max[0]:bb_max[0] + bb_max[2]]
 
-mask = test_images[0][0]
-img = copy_test_images[0][0]
 
-img[mask == 0] = 0
 
-plt.figure(), plt.imshow(cropped_train_images[0][0])
 
-plt.show()
+train_features = []
+train_labels = []
+for i, cls in enumerate(cropped_train_images):
+    for j, image in enumerate(cls):
+        cropped_train_images[i][j] = cv2.resize(cropped_train_images[i][j], (64, 128))
+        train_features.append(hog.compute(cropped_train_images[i][j]))
+        train_labels.append(i)
 
-first_hog = hog.compute(cropped_train_images[0][0])
-print(np.size(first_hog))
 
+test_features = []
+test_labels = []
+for i, cls in enumerate(cropped_test_images):
+    for j, image in enumerate(cls):
+        cropped_test_images[i][j] = cv2.resize(cropped_test_images[i][j], (64, 128))
+        test_features.append(hog.compute(cropped_test_images[i][j]))
+        test_labels.append(i)
+
+clf = sk.svm.SVC()
+train_features = np.array(train_features)
+test_features = np.array(test_features)
+clf.fit(train_features, train_labels)
+prediction = clf.predict(test_features)
+
+print(prediction)
